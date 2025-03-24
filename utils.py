@@ -38,10 +38,13 @@ def save_new_images(images: Generator[List[np.ndarray], None, None], output_dir:
         os.makedirs(output_dir)
     # save each image yielded from the generator to the output directory
     for i, img in enumerate(images):
-        imsave(os.path.join(output_dir, f"page_{i+1}.png"), img)
+        page_num = get_padded_page_number(i + 1)
+        imsave(os.path.join(output_dir, f"page_{page_num}.png"), img)
 
 
 def filter_duplicate_files(image_files, supported_filetypes):
+    #? NOTE: this function may end up skipping some title pages that have the same name as the first (non-title) page but different extensions
+        # ex: when scraping from MangaDex, the first page is often "{...}001.jpg" and the title page is "{...}001.gif"
     # create a mapping of file extensions to their priority based on the order in supported_filetypes
     filetype_priority = {ext: i for i, ext in enumerate(supported_filetypes)}
     # dictionary to store the highest-priority file for each basename
@@ -101,3 +104,8 @@ def get_image_dimensions_from_metadata(file_path):
             return width, height
         else:
             raise ValueError("Unsupported image format")
+
+
+def get_padded_page_number(page_number: int) -> str:
+    """ returns a zero-padded page number for consistent naming """
+    return f"{page_number:03d}"

@@ -1,10 +1,10 @@
 import os
-from typing import List, Generator, Dict, Union
+#from typing import List, Generator, Dict, Union
 import argparse
 from dataclasses import dataclass
 # local imports
 import utils
-from manwha_normalizer import ImageSegmentGenerator, accumulate_segments, paginate_segments
+from manhwa_normalizer import ImageSegmentGenerator, SegmentStitcher #accumulate_segments, paginate_segments
 from document_creator import create_cbz, create_cbr, create_pdf_from_pages
 
 
@@ -54,12 +54,13 @@ def parse_input_args() -> ParserArguments:
 
 def split_and_stack_images(segment_stream: ImageSegmentGenerator, args: ParserArguments):
     """ splits and stacks images for paginated output with a maximum height determined by the page size that is reached through padding and trimming """
+    stitcher = SegmentStitcher()
     if args.archive == "pdf":
         page_height = args.get_page_height()
         # TODO: add arguments for the gap size range allowed between panels
-        accumulator = paginate_segments(segment_stream, page_height)
+        accumulator = stitcher.paginate_segments(segment_stream, page_height)
     else:
-        accumulator = accumulate_segments(segment_stream, args.min_height)
+        accumulator = stitcher.accumulate_segments(segment_stream, args.min_height)
     # passes a generator to save_new_images to save memory
     utils.save_new_images(accumulator, args.output_dir)
 
@@ -77,7 +78,8 @@ def create_archive(args: ParserArguments):
 
 
 def main():
-    supported_filetypes = ('png', 'jpg', 'jpeg', 'gif', 'bmp')
+    #! Not actually sure if webp is supported by skimage - check later
+    supported_filetypes = ('png', 'jpg', 'jpeg', 'bmp', 'webp','gif')
     parser_args = parse_input_args()
     #print(parser_args)
     image_files = sorted([f for f in os.listdir(parser_args.input_dir) if f.lower().endswith(supported_filetypes)])
