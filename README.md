@@ -35,7 +35,7 @@ This started as a simple script for my own use with scraped manhwa that was real
 
 The following examples show the problem of poor image cuts on one of the most popular manhwa of all time, "Solo Leveling" hosted on one of the most popular manga/manhwa/manhua readers of all time, MangaDex. Even with the intense popularity of both, we see that proper formatting of the images may be an afterthought for many, as they instead rely on features of the comic reader to support continuous vertical read modes. The images below are ordered left-to-right in their original read order.
 
-![OLD IMAGES](assets/examples.old_img_grid.png)
+![OLD IMAGES](assets/examples/old_img_grid.png)
 
 While the images above illustrate the problem, note that we can expect much worse readability when the cuts are made in the middle of a speech bubble or region of very dense comic panels. Below, we see the fixed version that ensures cuts are made in whitespace.
 
