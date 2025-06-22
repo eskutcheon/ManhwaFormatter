@@ -47,6 +47,11 @@ This particular trial was done with a minimum height of 3200, using the original
 
 
 ## Installation
+
+If you're new to programming, Python is generally very easy to setup and walks through the process in their [official documentation](https://www.python.org/about/gettingstarted/).
+
+If you want to scrape a whole manga/manhwa/manhua or individual chapters to re-stitch, I recommend installing [gallery-dl](https://github.com/mikf/gallery-dl?tab=readme-ov-file#id7) and using it to scrape from sites like [MangaFox](https://fanfox.net/manga/solo_leveling/). I may consider a webapp for this in the future, but for now it's mainly for transforming files locally.
+
 ```bash
 git clone https://github.com/eskutcheon/ManhwaFormatter.git
 cd ManhwaFormatter
@@ -55,7 +60,7 @@ pip install -r requirements.txt
 
 ## Usage
 ```bash
-python main.py input_dir output_dir [options]
+python main.py my_input_directory my_output_directory [options]
 ```
 #### Arguments
 
