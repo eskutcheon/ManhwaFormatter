@@ -5,6 +5,7 @@ import numpy as np
 from collections import Counter
 from skimage.io import imread, imsave
 from skimage.transform import resize
+from skimage.filters import sobel_h, sobel_v
 
 
 def get_page_height(page_size: str, dpi: int = 300) -> int:
@@ -109,3 +110,44 @@ def get_image_dimensions_from_metadata(file_path):
 def get_padded_page_number(page_number: int) -> str:
     """ returns a zero-padded page number for consistent naming """
     return f"{page_number:03d}"
+
+
+def compute_adaptive_thresholds(image: np.ndarray,
+                                low_pct: float = 0.1,
+                                high_pct: float = 0.5) -> Tuple[float, float]:
+    """ Compute adaptive low/high thresholds for Canny by analyzing the image's gradient magnitude histogram.
+        Parameters
+            image : 2D float array
+                Grayscale image, values assumed in [0,1].
+            low_pct : float
+                The lower percentile (e.g. 0.1 for 10th percentile) of gradient magnitudes to use as low_threshold.
+            high_pct : float
+                The higher percentile (e.g. 0.5 for 50th percentile) for high_threshold.
+        Returns
+            low_threshold, high_threshold
+    """
+    TOL = 10e-6  # tolerance for near-zero noise
+    # compute horizontal and vertical gradients
+    gx = sobel_h(image)
+    gy = sobel_v(image)
+    # gradient magnitude
+    grad_mag = np.hypot(gx, gy).ravel()
+    # discard near-zero noise (optional)
+    grad_nonzero = grad_mag[grad_mag > TOL]
+    # compute percentiles
+    low = np.percentile(grad_nonzero, low_pct * 100)
+    high = np.percentile(grad_nonzero, high_pct * 100)
+    # sanity clamp (ensure low < high)
+    if low >= high:
+        low = 0.5 * high
+    return low, high
+
+
+
+def is_low_variance_region(image: np.ndarray, row_indices: Tuple[int, int], threshold: float = 0.2) -> bool:
+    """ Check if the specified row range in the image has low variance """
+    start_row, end_row = row_indices
+    assert 0 <= start_row < end_row, "Row indices out of bounds"
+    #return all(np.std(image[r]) < threshold for r in range(start_row, end_row))
+    region_std = np.std(image[start_row:end_row], axis=(0,1))
+    return np.mean(region_std) < threshold

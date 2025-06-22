@@ -54,11 +54,10 @@ def create_pdf_from_pages(src_dir, archive_name="output.pdf", dpi=300, clear_dir
         cleanup_src_directory(src_dir)
 
 
-# TODO: add a function to delete files in the output directory after creating the archive - should be called optionally by the above functions
 
 #! WARNING: written by AI - untested
 def cleanup_src_directory(src_dir):
-    """ delete all files in the output directory after creating the archive """
+    """ delete all files in the output directory after creating the archive - called optionally by the archive creation functions """
     print("Clearing image source directory...")
     for filename in tqdm(os.listdir(src_dir), desc="Deleting files"):
         file_path = os.path.join(src_dir, filename)

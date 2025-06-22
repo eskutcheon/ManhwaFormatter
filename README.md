@@ -1,15 +1,15 @@
-# Manhwa Image Formatter and Archive Generator
+# ManhwaFormatter: Webtoon Image Formatter and Archive Generator
 
-ManhwaFormatter is a Python tool for processing vertical webtoon-style comics (like manhwa, manhua, and Korean webcomics) into images which fixes poor crops and cut-off panel content in high-information regions. It also allows for the creation of structured document formats such as .cbz, .cbr, and .pdf using these reconstituted images. It intelligently resizes, segments, and recomposes webcomic panels for optimized viewing across various platforms — from comic book readers to e-readers and print-ready PDFs.
+ManhwaFormatter is a Python tool for processing vertical webtoon-style comics (like manhwa, manhua, and Korean webcomics) into images which fixes poor crops and cut-off panel content in high-information regions. It also allows for the creation of structured document formats such as .cbz, .cbr, and .pdf using these reconstituted images. It intelligently resizes, segments, and recomposes webtoon panels for optimized viewing across various platforms - from comic book readers to e-readers and print-ready PDFs.
 
 
-This started as a simple script for my own use with scraped manhwa that was really poorly formatted. I've added to it the last couple days and am currently extending it to more intelligently create paginated images to form pdf and other paginated document types.
+This started as a simple script for my own use with scraped manhwa that were really poorly formatted. I've extended the scripts since then to more intelligently create paginated images to form pdf files and other paginated document types.
 
 
 ## Features
 - Auto-resize images to a uniform width using the most common value across a folder
   - Skips resizing landscape-oriented title pages or special pages
-- Intelligent vertical segmentation by detecting blank horizontal spaces
+- Intelligent vertical segmentation by detecting blank horizontal regions with low variance
   - Prevents cutting through panels or dialogue bubbles
 - Supports vertical stacking into long-scroll .cbz or .cbr comics
 - New paginated mode for .pdf output optimized for page sizes like Letter or A4
@@ -35,7 +35,7 @@ This started as a simple script for my own use with scraped manhwa that was real
 
 The following examples show the problem of poor image cuts on one of the most popular manhwa of all time, "Solo Leveling" hosted on one of the most popular manga/manhwa/manhua readers of all time, MangaDex. Even with the intense popularity of both, we see that proper formatting of the images may be an afterthought for many, as they instead rely on features of the comic reader to support continuous vertical read modes. The images below are ordered left-to-right in their original read order.
 
-![OLD IMAGES](assets/examples.old_img_grid.png)
+![OLD IMAGES](assets/examples/old_img_grid.png)
 
 While the images above illustrate the problem, note that we can expect much worse readability when the cuts are made in the middle of a speech bubble or region of very dense comic panels. Below, we see the fixed version that ensures cuts are made in whitespace.
 
@@ -48,8 +48,8 @@ This particular trial was done with a minimum height of 3200, using the original
 
 ## Installation
 ```bash
-git clone https://github.com/yourusername/manhwa-normalizer.git
-cd manhwa-normalizer
+git clone https://github.com/eskutcheon/ManhwaFormatter.git
+cd ManhwaFormatter
 pip install -r requirements.txt
 ```
 

@@ -4,7 +4,7 @@ import argparse
 from dataclasses import dataclass
 # local imports
 import utils
-from manhwa_normalizer import ImageSegmentGenerator, SegmentStitcher #accumulate_segments, paginate_segments
+from manhwa_normalizer import ImageSegmentGenerator, SegmentStitcher
 from document_creator import create_cbz, create_cbr, create_pdf_from_pages
 
 
