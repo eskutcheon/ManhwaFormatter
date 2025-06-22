@@ -11,14 +11,16 @@ This started as a simple script for my own use with scraped manhwa that were rea
   - Skips resizing landscape-oriented title pages or special pages
 - Intelligent vertical segmentation by detecting blank horizontal regions with low variance
   - Prevents cutting through panels or dialogue bubbles
-- Supports vertical stacking into long-scroll .cbz or .cbr comics
-- New paginated mode for .pdf output optimized for page sizes like Letter or A4
+- Image directory to document format conversion
+  - New paginated mode for .pdf output optimized for page sizes like Letter or A4
+  - Supports vertical stacking into long-scroll .cbz or .cbr comics
 - Adaptive spacing logic:
   - Reduces or expands blank space between panels
   - Matches padding color with detected panel gaps
-- Handles duplicate images of different file extensions by default
-- Efficient streamed batch processing
-- Fast dimension detection using image metadata parsing
+- Quick and Efficient Processing
+  - Handles duplicate images of different file extensions by default
+  - Efficient streamed batch processing
+  - Fast dimension detection using image metadata parsing
 
 
 ## Use Cases
@@ -42,7 +44,7 @@ While the images above illustrate the problem, note that we can expect much wors
 ![NEW IMAGES](assets/examples/new_img_grid.png)
 
 
-This particular trial was done with a minimum height of 3200, using the original image heights, though this can be set arbitrarily with the arguments shown in the [Usage section](##Usage).
+This particular trial was done with a minimum height of 3200, though this can be set arbitrarily with the arguments shown in the [Usage section](##Usage).
 
 
 
@@ -60,17 +62,27 @@ pip install -r requirements.txt
 
 ## Usage
 ```bash
-python main.py my_input_directory my_output_directory [options]
+python main.py path/to/inputs path/to/outputs [options]
 ```
 #### Arguments
 
-| Option         | Description                                                                          |
-| -------------- | ------------------------------------------------------------------------------------ |
-| `--archive`    | One of ("cbz", "cbr", "pdf")                                                         |
-| `--cleanup`    | Delete all intermediate images after archiving (does nothing if `--archive` is None) |
-| `--min_height` | Minimum height before a new (non-paginated) stacked page is created - Default: 1600  |
-| `--page_size`  | Paginated version's page size from ("letter", "a4") - Default: "letter"              |
-| `--dpi`        | DPI used for PDF output - Default: 300                                               |
+The most pertinent options for a user interested in controlling aspects of image stitching and document creation are given below:
+
+| Option           | Description                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| `--archive`      | One of ("cbz", "cbr", "pdf")                                                              |
+| `--cleanup`      | Delete all intermediate images after archiving (does nothing if `--archive` is None)      |
+| `--min_height`   | Minimum height before a new (non-paginated) stacked page is created - Default: 1600       |
+| `--cleanup`      | Flag to automatically delete the new `output_dir` and its contents after archive creation |
+| `--compression`  | The compression level (0-9) for CBR/CBZ/PDF (default: 0 - no compression)                 |
+| `--target_width` | Target width in pixels for resizing images (optional)                                     |
+| `--dpi`          | DPI used for PDF output - Default: 300                                                    |
+
+Additional options for advanced users can be seen by running
+```bash
+python main.py --help   # this will be revised as a more typical module structure eventually
+```
+
 
 #### Example
 ```bash

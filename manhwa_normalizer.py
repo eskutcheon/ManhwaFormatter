@@ -41,7 +41,8 @@ def _region_median_color(image: np.ndarray, start: int, end: int) -> Tuple[int,i
 def _plan_and_apply_trimming(stacked: np.ndarray,
                              blank_rows: List[int],
                              total_to_remove: int,
-                             min_gap: int) -> np.ndarray:
+                             min_gap: int,
+                             max_gap: int) -> np.ndarray:
     """ trim exactly `total_to_remove` rows from stacked image using blank_rows,
         respecting a minimum gap in each blank region, else fallback to resizing the image
     """
@@ -66,26 +67,21 @@ def _plan_and_apply_trimming(stacked: np.ndarray,
     if removable_total < total_to_remove:
         # if not enough removable rows, fallback to resizing
         return resize(stacked, (H - total_to_remove, W), preserve_range=True, anti_aliasing=True).astype(np.uint8)
-    # distribute the removals proportionally across regions
-    # remove_plan = {}
-    # removable_total = sum(max(0, len(r) - self.min_gap) for r in regions)
-    # if removable_total < total_to_remove:
-    #     return resize(stacked, (target_height, W), preserve_range=True, anti_aliasing=True).astype(np.uint8)
-    # for region in regions:
-    #     max_removable = len(region) - self.min_gap
-    #     prop = max_removable / removable_total
-    #     to_remove = int(round(prop * total_to_remove))
-    #     if to_remove > 0:
-    #         remove_plan[tuple(region)] = region[:to_remove]
-    # rows_to_strip = set()
-    # for group in remove_plan.values():
-    #     rows_to_strip.update(group)
     rows_to_strip = set()
     for region in regions:
-        max_rem = len(region) - min_gap
-        to_rem = int(round((max_rem / removable_total) * total_to_remove))
-        rows_to_strip.update(region[:to_rem])
-    keep_idx = np.array([i for i in range(H) if i not in rows_to_strip])
+        #& new logic using max_gap to slice regions larger than max_gap to consecutive chunks
+        for i in range(0, len(region), max_gap): # will only do a single iteration if max_gap >= len(region)
+            chunk = region[i:(i + max_gap)]
+            # # only remove rows from this sub-region if it has enough rows to remove
+            # if len(sub_region) - min_gap > 0:
+            #     rows_to_strip.update(sub_region[:int(round((len(sub_region) / removable_total) * total_to_remove))])
+            ###max_rem = len(region) - min_gap
+            max_rem = len(chunk) - min_gap
+            to_rem = int(round((max_rem / removable_total) * total_to_remove))
+            ###rows_to_strip.update(region[:to_rem])
+            rows_to_strip.update(chunk[:to_rem])
+    ###keep_idx = np.array([i for i in range(H) if i not in rows_to_strip])
+    keep_idx = np.array(set(range(H)) - rows_to_strip) # set difference instead of list comprehension for better performance
     return stacked[keep_idx, :, :]
 
 
@@ -111,11 +107,12 @@ class ImageSegments:
 
 
 class ImageSegmentGenerator:
-    def __init__(self, image_files: List[np.ndarray], image_dir: os.PathLike, target_width: int, min_blank_run: int = 10):
+    def __init__(self, image_files: List[np.ndarray], image_dir: os.PathLike, target_width: int, min_blank_run: int = 10, max_blank_run: int = 40):
         self.image_files = image_files
         self.image_dir = image_dir
         self.target_width = target_width
         self.min_blank_run = min_blank_run
+        self.max_blank_run = max_blank_run
 
     def _add_split_point(self, blank_candidates: List[int], split_points: List[int]):
         if len(blank_candidates) >= self.min_blank_run:
@@ -124,7 +121,6 @@ class ImageSegmentGenerator:
 
     def _detect_blank_regions(self, image: np.ndarray) -> Tuple[List[int], List[int], List[Tuple[int, int, int]]]:
         """ detects eligible blank rows for vertical splits in the image using Canny edge detection """
-        # TODO: add more advanced logic to avoid cuts in the middle of comic panels that don't have much detail (i.e. homogeneous background regions)
         img_gray = rgb2gray(image)
         edges = _detect_edges(img_gray)
         blank_mask = ~edges.any(axis=1)
@@ -132,36 +128,33 @@ class ImageSegmentGenerator:
         split_points = []
         blank_row_indices = []
         blank_row_colors = []
-        # row = 0
-        # while row < edges.shape[0]:
-        #     # Find the start of a blank run
-        #     if not np.any(edges[row]):
-        #         start_row = row
-        #         # count the number of blank rows before an edge is detected
-        #         while row < edges.shape[0] and not np.any(edges[row]):
-        #             row += 1
-        #         end_row = row  # exclusive in slicing
-        #         # if the run is long enough, process it
-        #         run_length = end_row - start_row
-        #         #& NEW: check for low variance in the blank region
-        #         if run_length >= self.min_blank_run and utils.is_low_variance_region(image, (start_row, end_row)):
-        #             midpoint = start_row + run_length // 2
-        #             split_points.append(midpoint)
-        #             avg_rgb = np.median(image[start_row:end_row], axis=(0, 1)).astype(int)
-        #             # append blank row indices and average colors for the run
-        #             blank_row_indices.extend(range(start_row, end_row))
-        #             blank_row_colors.extend([tuple(avg_rgb)] * run_length)
-        #     else:
-        #         row += 1
+        # iterate over runs to find median colors and split points
         for start, end in runs:
-            if utils.is_low_variance_region(image, (start, end)):
-                split_points.append((start + end) // 2)
-                blank_row_indices.extend(range(start, end))
-                median_color = _region_median_color(image, start, end)
-                blank_row_colors.extend([median_color] * (end - start))
+            #& new addition incorporating max_blank_run (max_gap) to avoid ever splitting on a run that is too large
+            length = end - start
+            # determine the number of sub-regions to split this run into
+            n = max(1, int(np.ceil(length / self.max_blank_run)))
+            for i in range(n):
+                #! FIXME: minor issue here is that this seemingly just forces large blank regions to be at the beginning of new images
+                    #! it works fine for now, so I'll worry about it in a future update
+                sub_start = start + i * self.max_blank_run
+                sub_end = min(end, sub_start + self.max_blank_run)
+                if (sub_end - sub_start) < self.min_blank_run:
+                    break
+                #& now treating (sub_start, sub_end) exactly as we did (start, end) before
+                if utils.is_low_variance_region(image, (sub_start, sub_end)): #(start, end)):
+                    # split_points.append((start + end) // 2)
+                    # blank_row_indices.extend(range(start, end))
+                    # median_color = _region_median_color(image, start, end)
+                    # blank_row_colors.extend([median_color] * (end - start))
+                    split_points.append((sub_start + sub_end) // 2)
+                    blank_row_indices.extend(range(sub_start, sub_end))
+                    median_color = _region_median_color(image, sub_start, sub_end)
+                    blank_row_colors.extend([median_color] * (sub_end - sub_start))
         return split_points, blank_row_indices, blank_row_colors
 
-    def __iter__(self) -> Generator[Dict[str, Union[str, np.ndarray, bool]], None, None]:
+    def __iter__(self) -> Generator[ImageSegments, None, None]:
+        """ Generator that yields ImageSegments for each image file in the directory """
         for file in tqdm(self.image_files, desc="Processing images"):
             img_path = os.path.join(self.image_dir, file)
             img = imread(img_path)
@@ -195,6 +188,7 @@ class SegmentStitcher:
     def __init__(self, min_gap: int = 5, max_gap: int = 40, resize_threshold_ratio: float = 0.05):
         self.min_gap = min_gap
         self.max_gap = max_gap
+        # ratio of the target height to use as a threshold for resizing; i.e. if target_height - current_height <= this ratio, then resize
         self.resize_threshold_ratio = resize_threshold_ratio
         self.buffer: List[Segment] = []
         self.buffer_height = 0
@@ -230,7 +224,7 @@ class SegmentStitcher:
             bottom = np.ones((bottom_pad, W, 3), dtype=np.uint8) * np.array(bottom_color, dtype=np.uint8)
             return np.vstack([top, stacked, bottom])
         if diff < 0 and blank_row_indices:
-            return _plan_and_apply_trimming(stacked, blank_row_indices, total_to_remove=abs(diff), min_gap=self.min_gap)
+            return _plan_and_apply_trimming(stacked, blank_row_indices, total_to_remove=abs(diff), min_gap=self.min_gap, max_gap=self.max_gap)
         # fallback approach: resize to target height
         return resize(stacked, (target_height, W), preserve_range=True, anti_aliasing=True).astype(np.uint8)
 
